@@ -6,7 +6,7 @@ import random
 from argparse import ArgumentParser
 
 from scrapers.woolworths import WoolworthsScraper
-
+from scrapers.aldi import AldiScraper
 
 def default(obj):
     if isinstance(obj, (datetime.date, datetime.datetime)):
@@ -19,13 +19,26 @@ def main(output_dir):
     
     # Include scraper classes here (for loop?).
     woolies = WoolworthsScraper()
-    print('*** Running {} ***'.format(woolies))
-    woolies.execute()
-    objs = woolies.product_object_list
-    file_name = '{}{}'.format(output_dir, 'woolies.json')
+    aldi = AldiScraper()
 
-    with open(file_name, 'w') as f:
-        json.dump(objs, f, default=default)
+    scrapers = []
+    scrapers.append(woolies)
+    scrapers.append(aldi)
+
+    for scraper in scrapers:
+        print('*** Running {} ***'.format(scraper))
+        scraper.execute()
+        seller_obj = scraper.seller_info
+        product_objs = scraper.product_object_list
+        file_name = '{}{}'.format(output_dir, '{}.json'.format(seller_obj.get('name', scraper).lower()))
+
+        with open(file_name, 'w') as f:
+            obj = {
+                'seller' : seller_obj,
+                'products' : product_objs
+            }
+
+            json.dump(obj, f, default=default)
 
 
 def arg_parse():
