@@ -98,33 +98,27 @@ def scrape(base_url, wait_times=None):
         html = driver.page_source
         category_soup = soup(html, 'lxml')
 
-        # find pagination element.
-        paging_element = category_soup.find(
-            'div', {'class': 'paging _pagingControl'})
-        page_count = 0
+        page_number = 1
 
-        # if pagination is NOT empty, run product on every page.
-        if paging_element != None:
-            page_count = len(paging_element.find_all('a'))
-            
-            # Adds 1 to `page_count` since `pageNumber` query starts from 1.
-            for i in range(1, page_count + 1):
-                print('{} -- page: {}'.format(get_datetime_str(), i))
-                
-                url = urllib.parse.urljoin(url, '?pageNumber={}'.format(i))
-                driver.get(url)
-                time.sleep(wait_times[1])
-               
-                html = driver.page_source
-                category_soup = soup(html, 'lxml')
+        while(True):
+            print('{} -- page: {}'.format(get_datetime_str(), page_number))
 
+            url = urllib.parse.urljoin(url, '?pageNumber={}'.format(page_number))
+            driver.get(url)
+            time.sleep(wait_times[1])
+
+            html = driver.page_source
+            category_soup = soup(html, 'lxml')
+
+            product_objs = get_product_objs(category_soup)
+
+            if product_objs:
                 # Add products to obj list.
-                category_product_obj_list.extend(
-                    get_product_objs(category_soup))
-
-        else:
-            # Add products to obj list.
-            category_product_obj_list.extend(get_product_objs(category_soup))
+                category_product_obj_list.extend(product_objs)
+                
+                page_number += 1
+            else:
+                break
 
         for item in category_product_obj_list:
             item['category'] = obj.get('title')
@@ -147,6 +141,17 @@ class WoolworthsScraper:
     def execute(self):
         """ Run scraper. """
         self.__product_obj_list = scrape(self.__base_url)
+
+    @property
+    def seller_info(self):
+        info = {
+            "name": "Woolworths",
+            "description": "Woolworths Supermarkets is an Australian supermarket/grocery store chain owned by Woolworths Limited. Founded in 1924, Woolworths along with Coles forms a near-duopoly of Australian supermarkets accounting for about 80% of the Australian market",
+            "url": "https://www.woolworths.com.au/",
+            "added_datetime": None
+        }
+
+        return info
 
     @property
     def product_object_list(self):
